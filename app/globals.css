@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-main: #020617; /* Slate 950 */
+  --bg-panel: #0f172a; /* Slate 900 */
+  --border-color: #1e293b; /* Slate 800 */
+  --text-main: #f8fafc; /* Slate 50 */
+  --text-muted: #94a3b8; /* Slate 400 */
+  
+  /* Node Colors */
+  --node-brain: #3b82f6; /* Blue */
+  --node-skill: #f59e0b; /* Amber */
+  --node-memory: #10b981; /* Emerald */
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
