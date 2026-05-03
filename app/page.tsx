@@ -20,7 +20,9 @@ export default function AxiomIntegratedWorkbench() {
       {/* GLOBAL NAV: EXPERT IDENTITY */}
       <nav className="w-16 border-r border-slate-800 flex flex-col items-center py-6 gap-8 bg-[#070e1e]">
         <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/20">A</div>
-        <Activity className="text-blue-400" size={20} title="AERA Monitor" />
+        <div title="AERA Monitor" className="cursor-help">
+          <Activity className="text-blue-400" size={20} />
+        </div>
         <ShieldCheck className="text-slate-500 hover:text-white cursor-pointer transition-colors" size={20} />
         <Lock className="text-slate-500 hover:text-white cursor-pointer transition-colors" size={20} />
         <div className="mt-auto pb-4">
