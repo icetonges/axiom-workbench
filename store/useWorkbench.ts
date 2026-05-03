@@ -1,105 +1,105 @@
 import { create } from 'zustand';
 import { 
-  Connection, 
-  Edge, 
-  Node, 
-  addEdge, 
-  OnNodesChange, 
-  OnEdgesChange, 
-  applyNodeChanges, 
-  applyEdgeChanges 
+  Connection, Edge, EdgeChange, Node, NodeChange, 
+  addEdge, OnNodesChange, OnEdgesChange, OnConnect, applyNodeChanges, applyEdgeChanges 
 } from 'reactflow';
 
-interface Trace {
+export interface AuditPacket {
   id: string;
   timestamp: string;
   source: string;
   target: string;
+  status: 'pending' | 'success' | 'error';
   payload: any;
-  status: 'success' | 'error' | 'pending';
 }
 
 interface WorkbenchState {
   nodes: Node[];
   edges: Edge[];
-  logs: Trace[];
+  logs: AuditPacket[];
+  isExecuting: boolean;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
-  onConnect: (connection: Connection) => void;
-  addLog: (log: Omit<Trace, 'id' | 'timestamp'>) => void;
-  runGraph: () => void;
+  onConnect: OnConnect;
+  addLog: (log: AuditPacket) => void;
+  runGraph: () => Promise<void>;
 }
 
+const initialNodes: Node[] = [
+  { 
+    id: 'miner-1', 
+    type: 'skill', 
+    position: { x: 100, y: 200 }, 
+    data: { label: 'Log Miner Agent', sublabel: 'Appropriated Funds', variant: 'miner' } 
+  },
+  { 
+    id: 'core-1', 
+    type: 'reasoning', 
+    position: { x: 500, y: 200 }, 
+    data: { label: 'AERA Reasoning Core', sublabel: 'Variance Detection' } 
+  },
+];
+
 export const useWorkbench = create<WorkbenchState>((set, get) => ({
-  nodes: [
-    { 
-      id: 'core-1', 
-      type: 'reasoning', 
-      data: { model: 'Gemini 1.5 Pro' }, 
-      position: { x: 250, y: 50 } 
-    },
-    { 
-      id: 'tool-1', 
-      type: 'skill', 
-      data: { function: 'audit_parser' }, 
-      position: { x: 100, y: 250 } 
-    },
-  ],
+  nodes: initialNodes,
   edges: [],
   logs: [],
-  onNodesChange: (changes) => set({ nodes: applyNodeChanges(changes, get().nodes) }),
-  onEdgesChange: (changes) => set({ edges: applyEdgeChanges(changes, get().edges) }),
-  onConnect: (params) => set({ edges: addEdge({ ...params, animated: true }, get().edges) }),
-  
-  addLog: (log) => set((state) => ({
-    logs: [
-      { 
-        ...log, 
-        id: Math.random().toString(36).substr(2, 9), 
-        timestamp: new Date().toLocaleTimeString() 
-      }, 
-      ...state.logs
-    ].slice(0, 50)
-  })),
+  isExecuting: false,
 
-  runGraph: () => {
+  onNodesChange: (changes: NodeChange[]) => {
+    set({ nodes: applyNodeChanges(changes, get().nodes) });
+  },
+  onEdgesChange: (changes: EdgeChange[]) => {
+    set({ edges: applyEdgeChanges(changes, get().edges) });
+  },
+  onConnect: (connection: Connection) => {
+    set({ edges: addEdge({ ...connection, animated: true, style: { stroke: '#3b82f6' } }, get().edges) });
+  },
+
+  addLog: (log) => set((state) => ({ logs: [log, ...state.logs].slice(0, 50) })),
+
+  runGraph: async () => {
     const { nodes, edges, addLog } = get();
-    const rootNode = nodes[0];
+    set({ isExecuting: true });
 
-    addLog({ 
-      source: 'SYSTEM', 
-      target: rootNode.id, 
-      payload: { event: 'INIT_PIPELINE', context: 'Audit Reconciliation' }, 
-      status: 'pending' 
+    // 1. Initial Handshake
+    addLog({
+      id: Math.random().toString(36),
+      timestamp: new Date().toLocaleTimeString(),
+      source: 'SYSTEM',
+      target: 'ORCHESTRATOR',
+      status: 'pending',
+      payload: { event: 'INIT_AUDIT_RUN', scope: 'FY2026_Q1_RECON' }
     });
 
-    // Simulate the Handshake Logic
-    setTimeout(() => {
-      const activeEdges = edges.filter(e => e.source === rootNode.id);
-      
-      if (activeEdges.length === 0) {
-        addLog({
-          source: rootNode.id,
-          target: 'NONE',
-          payload: { error: "No outgoing connections found. Workflow halted." },
-          status: 'error'
-        });
-        return;
-      }
+    // 2. Identify Execution Order (Simple DFS for DAG)
+    const visited = new Set();
+    const executionQueue = nodes.filter(n => !edges.find(e => e.target === n.id));
 
-      activeEdges.forEach(edge => {
-        const target = nodes.find(n => n.id === edge.target);
-        addLog({
-          source: rootNode.id,
-          target: target?.id || 'unknown',
-          payload: {
-            intent: "Execute data extraction",
-            schema: { file_id: "string", user_auth: "required" },
-            result: "FAILED: Key mismatch. Target expected 'auth_token'."
-          },
-          status: 'error'
-        });
+    for (const node of executionQueue) {
+      if (visited.has(node.id)) continue;
+      
+      // Simulate Node Processing Logic
+      const outgoingEdges = edges.filter(e => e.source === node.id);
+      
+      await new Promise(r => setTimeout(r, 1200)); // Latency Simulation
+
+      const resultPayload = node.type === 'skill' 
+        ? { parsed_records: 1240, variances_found: 12, schema: 'SF-133' }
+        : { decision: 'ESCALATE', confidence: 0.98, logic: 'Threshold > 5% mismatch' };
+
+      addLog({
+        id: Math.random().toString(36),
+        timestamp: new Date().toLocaleTimeString(),
+        source: node.id,
+        target: outgoingEdges.length > 0 ? outgoingEdges[0].target : 'OUTPUT',
+        status: 'success',
+        payload: resultPayload
       });
-    }, 1000);
-  }
+
+      visited.add(node.id);
+    }
+
+    set({ isExecuting: false });
+  },
 }));
